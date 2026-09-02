@@ -3,19 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="加密雷达 — 币安+OKX现货涨跌幅TOP10实时扫描,双所共振提示">
-  <title>📡 加密雷达 · 双所涨跌实时扫描</title>
+  <meta name="description" content="加密雷达 — 1h/4h/24h/7d四周期热点扫描,双所共振,热点共性画像">
+  <title>📡 加密雷达 · 四周期热点扫描</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="logo">📡 加密雷达</div>
-    <div class="motto">币安+OKX · 涨跌幅TOP10 · 双所共振</div>
+    <div class="motto">1h · 4h · 24h · 7d 四周期热点 · 共性画像</div>
     <div class="controls">
       <select id="intervalSel" title="自动刷新间隔">
-        <option value="30" selected>30秒</option>
-        <option value="60">60秒</option>
+        <option value="60" selected>60秒</option>
+        <option value="30">30秒</option>
         <option value="180">3分</option>
         <option value="0">手动</option>
       </select>
@@ -29,34 +29,36 @@
   </header>
 
   <main>
-    <div class="card res-card hidden" id="resCard">
-      <div class="card-title">🔥 双所共振 <span class="sub">同时进入两所榜单,资金共识最强</span></div>
-      <div id="resBody"></div>
+    <div class="card">
+      <div class="card-title">🧠 热点共性画像 <span class="sub">热度TOP20 · 热度=四周期涨幅百分位均值 · 点击表头按周期排序</span></div>
+      <div id="insBody" class="ins-body"><span class="sub">扫描中…</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔥 热点榜 TOP30 <span class="sub" id="bnInfo"></span></div>
+      <div class="hot-table-wrap">
+        <table class="hot-table">
+          <thead id="hotHead"></thead>
+          <tbody id="hotBody"></tbody>
+        </table>
+      </div>
     </div>
 
     <div class="grid">
       <div class="card">
-        <div class="card-title">🔴 币安 · 涨幅TOP10 <span class="sub" id="bnInfo"></span></div>
-        <div id="bnUp" class="rk-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🔴 OKX · 涨幅TOP10 <span class="sub" id="okInfo"></span></div>
+        <div class="card-title">🔴 OKX · 24h涨幅TOP10 <span class="sub" id="okInfo"></span></div>
         <div id="okUp" class="rk-list"></div>
       </div>
       <div class="card">
-        <div class="card-title">🟢 币安 · 跌幅TOP10</div>
-        <div id="bnDown" class="rk-list"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">🟢 OKX · 跌幅TOP10</div>
+        <div class="card-title">🟢 OKX · 24h跌幅TOP10</div>
         <div id="okDown" class="rk-list"></div>
       </div>
     </div>
   </main>
 
   <footer class="footer">
-    币安实时直连 · OKX实时(不通时用Actions每10分钟快照兜底) · 成交额>$1M过滤稳定币/杠杆币 ·
-    点击币种 → <a href="https://fumolan.github.io/kaicang/" target="_blank">开仓</a>详情分析 · 仅供学习研究
+    币安四周期实时(1h/4h/24h/7d滚动窗口) · OKX 24h(实时或Actions快照) · 成交额>$1M过滤 ·
+    点击币种 → <a href="https://fumolan.github.io/kaicang/" target="_blank">开仓</a>分析 · 仅供学习研究
   </footer>
 
   <script src="app.js"></script>
