@@ -1,0 +1,28 @@
+name: radar
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  okx-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: OKX快照
+        run: python radar.py
+      - name: 提交并推送
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "actions@github.com"
+          git add data.json
+          if git diff --cached --quiet; then
+            echo "无变化, 跳过提交"
+          else
+            git commit -m "OKX快照 $(TZ=Asia/Shanghai date +%m%d-%H:%M) [skip ci]"
+            git push
+          fi

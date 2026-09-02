@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="加密雷达 — 币安+OKX现货涨跌幅TOP10实时扫描,双所共振提示">
+  <title>📡 加密雷达 · 双所涨跌实时扫描</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">📡 加密雷达</div>
+    <div class="motto">币安+OKX · 涨跌幅TOP10 · 双所共振</div>
+    <div class="controls">
+      <select id="intervalSel" title="自动刷新间隔">
+        <option value="30" selected>30秒</option>
+        <option value="60">60秒</option>
+        <option value="180">3分</option>
+        <option value="0">手动</option>
+      </select>
+      <button id="refreshBtn" title="立即扫描">🔄 扫描</button>
+    </div>
+    <div class="status">
+      <span class="dot" id="statusDot"></span>
+      <span id="lastUpdate">--:--:--</span>
+      <span id="okxSrc" class="okx-src"></span>
+    </div>
+  </header>
+
+  <main>
+    <div class="card res-card hidden" id="resCard">
+      <div class="card-title">🔥 双所共振 <span class="sub">同时进入两所榜单,资金共识最强</span></div>
+      <div id="resBody"></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-title">🔴 币安 · 涨幅TOP10 <span class="sub" id="bnInfo"></span></div>
+        <div id="bnUp" class="rk-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔴 OKX · 涨幅TOP10 <span class="sub" id="okInfo"></span></div>
+        <div id="okUp" class="rk-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🟢 币安 · 跌幅TOP10</div>
+        <div id="bnDown" class="rk-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🟢 OKX · 跌幅TOP10</div>
+        <div id="okDown" class="rk-list"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    币安实时直连 · OKX实时(不通时用Actions每10分钟快照兜底) · 成交额>$1M过滤稳定币/杠杆币 ·
+    点击币种 → <a href="https://fumolan.github.io/kaicang/" target="_blank">开仓</a>详情分析 · 仅供学习研究
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
