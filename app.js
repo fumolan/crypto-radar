@@ -113,7 +113,8 @@ function hotTable(rows) {
   const label = { c1: "1小时", c4: "4小时", chg24: "24小时", c7: "7天", heat: "热度" };
   const sorted = [...rows].sort((a, b) => (b[sortDim] ?? -1e9) - (a[sortDim] ?? -1e9));
   const th = (d) => `<th class="sortable ${sortDim === d ? "on" : ""}" data-dim="${d}">${label[d]}↓</th>`;
-  $("hotHead").innerHTML = `<tr><th>#</th><th>币种</th>${th("c1")}${th("c4")}${th("chg24")}${th("c7")}${th("heat")}<th>结构</th><th>24h额</th><th></th></tr>`;
+  const diffCol = (src === "okx") ? `<th title="OKX 24h涨幅 - 币安24h涨幅, 偏离≥1.5%为两所背离信号">vs币安</th>` : "";
+  $("hotHead").innerHTML = `<tr><th>#</th><th>币种</th>${th("c1")}${th("c4")}${th("chg24")}${th("c7")}${th("heat")}<th>结构</th>${diffCol}<th>24h额</th><th></th></tr>`;
   $("hotBody").innerHTML = sorted.slice(0, 30).map((r, i) => {
     const k = classify(r);
     const td = (v) => `<td class="num ${clsOf(v)}">${pct(v)}</td>`;
@@ -122,6 +123,7 @@ function hotTable(rows) {
       ${td(r.c1)}${td(r.c4)}${td(r.chg24)}${td(r.c7)}
       <td class="num heat">${Math.round(r.heat)}</td>
       <td><span class="stag ${k.cls}">${k.tag}</span></td>
+      ${src === "okx" ? `<td class="num ${r.bdiff === undefined ? "dim" : clsOf(r.bdiff)} ${Math.abs(r.bdiff || 0) >= 1.5 ? "bdiff-hi" : ""}">${r.bdiff === undefined ? "--" : (okxLive ? "" : "≈") + (r.bdiff >= 0 ? "+" : "") + r.bdiff.toFixed(1) + "%"}</td>` : ""}
       <td class="dim">${fmtVol(r.vol24)}</td><td class="go">→</td>
     </tr>`;
   }).join("");
@@ -177,12 +179,89 @@ function renderOKX(ok) {
 }
 
 // ---------- 扫描 ----------
+// ---------- 交易所切换 ----------
+let src = "binance";
+let okxLive = false;   // OKX实时价是否覆盖成功(失败时背离值带≈表示时间差)
+$("srcBn").addEventListener("click", () => { if (src !== "binance") { src = "binance"; $("srcBn").classList.add("active"); $("srcOkx").classList.remove("active"); scan(); } });
+$("srcOkx").addEventListener("click", () => { if (src !== "okx") { src = "okx"; $("srcOkx").classList.add("active"); $("srcBn").classList.remove("active"); scan(); } });
+
+function applyHeat(rows) {
+  const p1 = percentileRanks(rows.map(r => r.c1));
+  const p4 = percentileRanks(rows.map(r => r.c4));
+  const p24 = percentileRanks(rows.map(r => r.chg24));
+  const p7 = percentileRanks(rows.map(r => r.c7));
+  rows.forEach((r, i) => { r.heat = (p1[i] + p4[i] + p24[i] + p7[i]) / 4; });
+}
+
+async function scanOKX() {
+  const snap = await fetch("data-okx.json?v=" + Date.now(), { cache: "no-store" }).then(r => r.json()).catch(() => null);
+  if (!snap || !snap.rows) { $("statusDot").className = "dot err"; $("okxSrc").textContent = "OKX快照不可用"; return; }
+  const rows = snap.rows.map(r => ({ sym: r.sym, price: r.price, c1: r.c1 || 0, c4: r.c4 || 0, chg24: r.c24 || 0, c7: r.c7 || 0, vol24: r.vol24 || 0 }));
+  let live = false;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const d = await fetch("https://www.okx.com/api/v5/market/tickers?instType=SPOT", { signal: ctrl.signal }).then(r => r.json());
+    clearTimeout(t);
+    if (d.code === "0") {
+      const m = {};
+      for (const x of d.data) if (x.instId.endsWith("-USDT")) m[x.instId.slice(0, -5)] = x;
+      rows.forEach(r => { const x = m[r.sym]; if (x) { const last = +x.last, o = +x.open24h; r.price = last; if (o > 0) r.chg24 = (last / o - 1) * 100; r.vol24 = +x.volCcy24h || r.vol24; } });
+      live = true;
+    }
+  } catch (e) { /* 快照价 */ }
+  try {
+    const bn = await bnFetch("/api/v3/ticker/24hr");
+    const bm = {};
+    for (const t of bn) if (t.symbol.endsWith("USDT")) bm[t.symbol.slice(0, -4)] = +t.priceChangePercent || 0;
+    rows.forEach(r => { if (bm[r.sym] !== undefined) r.bdiff = r.chg24 - bm[r.sym]; });
+  } catch (e) { /* 无背离列 */ }
+  okxLive = live;
+  applyHeat(rows);
+  hotTable(rows);
+  const top = [...rows].sort((a, b) => b.heat - a.heat).slice(0, 20);
+  const kinds = top.map(r => classify(r).tag);
+  const cnt = (t) => kinds.filter(x => x === t).length;
+  const vols = top.map(r => r.vol24).sort((a, b) => a - b);
+  const med = vols[Math.floor(vols.length / 2)] || 0;
+  const rich = top.filter(r => r.vol24 > 1e7).length;
+  const accel = top.filter(r => r.c1 > r.c7 / 168).length;
+  const allUp = cnt("四周期共振");
+  const diverge = rows.filter(r => r.bdiff !== undefined && Math.abs(r.bdiff) >= 1.5);
+  const item = (icon, html) => `<div class="ins-row">${icon} ${html}</div>`;
+  let html = "";
+  html += item("🧭", `<b>结构分布(TOP20)</b>: 四周期共振 ${allUp}只 · 短周期启动 ${cnt("短周期启动")}只 · 趋势回调 ${cnt("趋势回调")}只 · 超跌反弹 ${cnt("超跌反弹")}只 — ${allUp >= kinds.length / 2 ? "普涨式热点(趋势市)" : "结构性热点(分化市)"}`);
+  html += item("💰", `<b>量能共性</b>: 24h成交额中位数 <b>${fmtVol(med)}</b>, ${rich}/${top.length} 只超$10M`);
+  html += item("🚀", `<b>加速特征</b>: ${accel}/${top.length} 只 1小时涨幅已超 7天均速`);
+  if (diverge.length) {
+    html += item("🔀", `<b>两所背离(vs币安)</b>: ${diverge.slice(0, 8).map(r => `<span class="dual">${r.sym}${r.bdiff >= 0 ? "+" : ""}${r.bdiff.toFixed(1)}%</span>`).join(" ")} ${diverge.length > 8 ? "等" + diverge.length + "只" : ""} — OKX相对币安偏离≥1.5%, 领先滞后信号`);
+  }
+  $("insBody").innerHTML = html;
+  const sorted = [...rows].sort((a, b) => b.chg24 - a.chg24);
+  const up = sorted.slice(0, 10), down = [...sorted.slice(-10)].reverse();
+  const rowHTML = (r, i) => `<div class="rk-row" data-sym="${r.sym}">
+    <span class="rk-i">${i + 1}</span><span class="rk-sym"><b>${r.sym}</b></span>
+    <span class="rk-chg ${clsOf(r.chg24)}">${fmtPct(r.chg24)}</span>
+    <span class="rk-vol">${fmtVol(r.vol24)}</span><span class="rk-go">→</span></div>`;
+  $("okUp").innerHTML = up.map(rowHTML).join("");
+  $("okDown").innerHTML = down.map((r, i) => rowHTML(r, i)).join("");
+  ["okUp", "okDown"].forEach(id => $(id).querySelectorAll(".rk-row").forEach(el =>
+    el.addEventListener("click", () => window.open(KAICANG + el.dataset.sym + "USDT", "_blank"))));
+  const ageMin = Math.max(0, Math.round((Date.now() / 1000 - snap.ts) / 60));
+  $("okxSrc").textContent = live ? `OKX:实时价+快照窗口(${ageMin}分前)` : `OKX:快照 ${snap.time} (${ageMin}分钟前)`;
+  $("okxSrc").className = "okx-src " + (live ? "live" : "snap");
+  $("bnInfo").textContent = `OKX有效${rows.length}对 · 四周期`;
+  $("statusDot").className = "dot ok";
+  $("lastUpdate").textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+}
+
 let timer = null, busy = false;
 async function scan() {
   if (busy) return;
   busy = true;
   $("statusDot").className = "dot";
   try {
+    if (src === "okx") { await scanOKX(); return; }
     const uni = await fetchUniverse();
     const syms = uni.map(r => r.sym);
     const maps = await Promise.all(WINDOWS.map(w => fetchWindowMap(syms, w)));
@@ -191,11 +270,7 @@ async function scan() {
       r.c4 = maps[1][r.sym] ?? 0;
       r.c7 = maps[2][r.sym] ?? 0;
     });
-    const p1 = percentileRanks(uni.map(r => r.c1));
-    const p4 = percentileRanks(uni.map(r => r.c4));
-    const p24 = percentileRanks(uni.map(r => r.chg24));
-    const p7 = percentileRanks(uni.map(r => r.c7));
-    uni.forEach((r, i) => { r.heat = (p1[i] + p4[i] + p24[i] + p7[i]) / 4; });
+    applyHeat(uni);
 
     const ok = await fetchOKX().catch(() => null);
     hotTable(uni);

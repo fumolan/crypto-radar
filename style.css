@@ -85,3 +85,8 @@ main { padding: 0 16px 16px; }
 .t-pull { background: rgba(122, 130, 153, 0.2); color: var(--muted); }
 .t-reb { background: rgba(36, 178, 140, 0.16); color: var(--down); }
 .t-mix { background: rgba(122, 130, 153, 0.12); color: var(--muted); }
+
+.src-toggle { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.src-btn { background: var(--card); color: var(--muted); border: none; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+.src-btn.active { background: rgba(240,185,11,0.18); color: var(--accent); font-weight: 700; }
+.hot-table td.bdiff-hi { font-weight: 700; }
