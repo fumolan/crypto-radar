@@ -26,3 +26,5 @@ jobs:
             git commit -m "OKX快照 $(TZ=Asia/Shanghai date +%m%d-%H:%M) [skip ci]"
             git push
           fi
+      - name: 刷新jsDelivr缓存(供kaicang跨仓库读取OKX快照)
+        run: curl -s -m 20 "https://purge.jsdelivr.net/gh/fumolan/crypto-radar@main/data-okx.json" > /dev/null || true
