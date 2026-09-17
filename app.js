@@ -4,6 +4,14 @@ const STABLES = new Set(["USDC", "FDUSD", "TUSD", "BUSD", "DAI", "USDP", "PAXG",
   "TRY", "BRL", "AEUR", "USD1", "EURI", "XUSD", "USDE", "USTC", "FRAX"]);
 const MIN_VOL = 1e6;
 const KAICANG = "https://fumolan.github.io/kaicang/?coin=";
+// iframe内嵌时通知父页面切币(实战页), 否则新开开仓页
+function openCoin(sym) {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: "switchCoin", sym }, "*");
+  } else {
+    window.open(KAICANG + sym + "USDT", "_blank");
+  }
+}
 const WINDOWS = ["1h", "4h", "7d"];
 
 const fmtPrice = (p) => p >= 1000 ? p.toLocaleString("en-US", { maximumFractionDigits: 2 })
